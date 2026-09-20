@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>आयुषमित्र - Digital Patient Intake System</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2306038D'/><circle cx='50' cy='50' r='28' fill='%23FFFFFF'/><path d='M50 25 C30 40 30 65 50 75 C70 65 70 40 50 25 Z' fill='%23138808'/></svg>" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      govNavy: '#06038D', govBlue: '#003580', govLightBlue: '#E8EAF6',
+      govAccent: '#FF9933', govSaffron: '#FF9933', govGreen: '#138808',
+      alertRed: '#dc2626', alertLight: '#fef2f2'
+    },
+    fontFamily: { sans: ['"Noto Sans"', '"Noto Sans Devanagari"', 'Arial', 'sans-serif'] }
+  }}
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+body{font-family:'Noto Sans','Noto Sans Devanagari',Arial,sans-serif;background:#FFF8F0;color:#1a1a2e}
+.kiosk-btn{transition:all .2s cubic-bezier(.4,0,.2,1)}
+.kiosk-btn:active{transform:scale(.98)}
+.mic-pulse{box-shadow:0 0 0 0 rgba(2,132,199,.7);animation:pulse-ring 1.6s infinite cubic-bezier(.66,0,0,1)}
+.headline-ticker{overflow:hidden;white-space:nowrap;background:#FFF3E0;border-bottom:1px solid #FFB74D;color:#8B4513}
+.headline-ticker__track{display:inline-block;padding-left:100%;animation:headline-scroll 24s linear infinite}
+@keyframes headline-scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.headline-ticker__track{animation:none;padding-left:0}}
+@keyframes pulse-ring{to{box-shadow:0 0 0 20px rgba(2,132,199,0)}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+.bg-white{background-color:#fff!important}
+.bg-slate-50{background-color:#FFF8F0!important}
+.bg-slate-100{background-color:#FFF3E0!important}
+.text-govBlue{color:#003580!important}
+.text-govNavy{color:#06038D!important}
+.bg-govNavy{background-color:#06038D!important}
+.bg-govBlue{background-color:#003580!important}
+.bg-govAccent{background-color:#FF9933!important}
+.hover\:bg-govNavy:hover{background-color:#06038D!important}
+.hover\:bg-govBlue:hover{background-color:#003580!important}
+</style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+<div class="flex w-full" style="height:4px;" aria-hidden="true">
+  <div class="flex-1" style="background:#FF9933;"></div>
+  <div class="flex-1" style="background:#FFFFFF;border-top:1px solid #eee;border-bottom:1px solid #eee;"></div>
+  <div class="flex-1" style="background:#138808;"></div>
+</div>
+
+<div id="toast-banner" class="fixed top-4 right-4 z-[90] max-w-sm w-full transition-all duration-300 transform translate-y-[-120%] opacity-0 pointer-events-none">
+  <div id="toast-inner" class="flex items-center gap-3 p-4 rounded-xl shadow-2xl border text-sm font-semibold bg-white text-slate-800 border-slate-200">
+    <span id="toast-icon" class="text-xl shrink-0"><i class="fa-solid fa-circle-info text-govAccent"></i></span>
+    <span id="toast-message" class="flex-1">Notification message</span>
+    <button onclick="dismissToast()" class="text-slate-400 hover:text-slate-600 ml-1"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+</div>
+
+<header class="bg-white text-govNavy shadow-md border-b-4 border-govAccent sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap justify-between items-center gap-2">
+    <div class="flex items-center gap-3">
+      <div class="bg-white p-1.5 rounded flex items-center justify-center shadow-sm">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Ministry_of_Health_India.svg" alt="MoHFW" class="w-14 h-10 object-contain" />
+      </div>
+      <div>
+        <span class="text-xs tracking-wider uppercase bg-[#FF9933] text-white px-2 py-0.5 rounded font-semibold">Ayush digital health ecosystem reference</span>
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-govNavy flex items-center gap-2">
+          आयुषमित्र <span class="text-xs text-slate-500 font-normal hidden sm:inline">| Digital Patient Intake System</span>
+        </h1>
+        <p class="text-[10px] text-slate-500 mt-0.5">Student prototype • Not an official Government of India application</p>
+      </div>
+    </div>
+    
+    <!-- TOP RIGHT ACTION ICONS -->
+    <div class="flex items-center gap-2 ml-auto">
+      <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+        <button onclick="switchMode('kiosk')" id="mode-btn-kiosk" class="px-3 py-1 text-xs font-semibold rounded bg-govAccent text-white flex items-center gap-1"><i class="fa-solid fa-desktop"></i> Kiosk</button>
+        <button onclick="switchMode('doctor')" id="mode-btn-doctor" class="px-3 py-1 text-xs font-semibold rounded text-slate-600 hover:text-white flex items-center gap-1"><i class="fa-solid fa-user-doctor"></i> Doctor View</button>
+      </div>
+
+      <!-- Icon 1: Quick Auth / Login -->
+      <button onclick="openAuthModal('login')" aria-label="Account Login" title="Account / Login" class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 text-govNavy hover:bg-govBlue hover:text-white flex items-center justify-center transition-colors">
+        <i class="fa-solid fa-user-circle text-lg"></i>
+      </button>
+
+      <!-- Icon 2: My Health Records -->
+      <button onclick="switchMode('kiosk'); goToStep(14);" aria-label="Medical Records" title="My Records & History" class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 text-govNavy hover:bg-govBlue hover:text-white flex items-center justify-center transition-colors">
+        <i class="fa-solid fa-folder-open text-lg"></i>
+      </button>
+
+      <!-- Icon 3: Menu & Quick Tools -->
+      <div class="relative">
+        <button onclick="toggleSettingsMenu()" aria-label="Settings and Options" aria-expanded="false" id="settings-menu-button" class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 text-govNavy hover:bg-govBlue hover:text-white flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <div id="settings-menu" class="hidden absolute right-0 top-full mt-2 w-64 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 z-50 p-3 space-y-3">
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Language / भाषा</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="setLanguageFromMenu('en')" class="px-3 py-2 rounded-md bg-govBlue text-white text-xs font-bold">English</button>
+              <button onclick="setLanguageFromMenu('hi')" class="px-3 py-2 rounded-md border border-slate-200 text-slate-700 text-xs font-bold hover:border-govBlue">हिंदी</button>
+            </div>
+          </div>
+          <div class="border-t pt-2 space-y-1 text-xs">
+            <button onclick="openAuthModal('login')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-govNavy flex items-center gap-2"><i class="fa-solid fa-right-to-bracket"></i> Login / Register</button>
+            <button onclick="showPortalAbout()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> About Team</button>
+            <button onclick="showEmergencyModal()" class="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 font-bold text-red-600 flex items-center gap-2"><i class="fa-solid fa-truck-medical"></i> Emergency Help</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-slate-200 bg-govNavy">
+    <div class="max-w-7xl mx-auto px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-xs text-blue-100">
+      <span class="font-semibold">Digital public-service design reference</span>
+      <span class="flex flex-wrap gap-x-3 gap-y-1"><span>Digital India</span><span>MyGov</span><span>UMANG</span><span>Ayush / AYUSH Grid</span><span>ABDM</span></span>
+    </div>
+  </div>
+</header>
+
+<nav class="bg-[#06038D] text-white shadow-md border-t border-b border-blue-900/50">
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2">
+    <button onclick="switchMode('kiosk'); goToStep(1);" class="px-3 py-2 rounded-md bg-white/15 font-semibold text-xs flex items-center gap-2 hover:bg-white/20"><i class="fa-solid fa-house"></i> Home</button>
+    <button onclick="switchMode('kiosk'); goToStep(7);" class="px-3 py-2 rounded-md hover:bg-white/10 text-xs flex items-center gap-2"><i class="fa-solid fa-briefcase-medical"></i> OPD Intake</button>
+    <button onclick="openExternalService()" class="px-3 py-2 rounded-md hover:bg-white/10 text-xs flex items-center gap-2"><i class="fa-solid fa-heart-pulse"></i> Health Schemes</button>
+    <button onclick="switchMode('kiosk'); goToStep(12);" class="px-3 py-2 rounded-md hover:bg-white/10 text-xs flex items-center gap-2"><i class="fa-solid fa-file-lines"></i> Upload Records</button>
+    <button onclick="showPortalAbout()" class="px-3 py-2 rounded-md hover:bg-white/10 text-xs flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> About Us</button>
+    <div class="ml-auto flex items-center gap-2.5">
+      <div id="nav-auth-container" class="relative">
+        <button onclick="openAuthModal('login')" class="px-3.5 py-2 rounded-lg bg-[#FF9933] hover:bg-[#E68A00] text-white text-xs font-black flex items-center gap-1.5 shadow-md">
+          <i class="fa-solid fa-user-lock"></i><span>Login / Register</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="headline-ticker" role="status">
+  <div class="max-w-7xl mx-auto px-4 py-2 text-xs sm:text-sm font-semibold text-center">
+    <span class="inline-flex items-center justify-center gap-2 max-w-full">
+      <i class="fa-solid fa-bullhorn text-govBlue"></i>
+      <span class="headline-ticker__track">आयुषमित्र | डिजिटल रोगी पंजीकरण एवं केस-टेकिंग | Patient history is AI-assisted and requires doctor verification.</span>
+    </span>
+  </div>
+</div>
+
+<main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6">
+
+  <div id="audio-toast" class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 z-50 border border-govAccent hidden transition-all duration-300">
+    <div class="flex items-center gap-1 text-govAccent">
+      <span class="w-1 h-3 bg-govAccent rounded animate-pulse"></span>
+      <span class="w-1 h-5 bg-govAccent rounded animate-pulse delay-75"></span>
+      <span class="w-1 h-2 bg-govAccent rounded animate-pulse delay-150"></span>
+    </div>
+    <span id="audio-toast-text" class="text-xs font-semibold">Voice Assistance Active...</span>
+    <button onclick="stopAudioGuidance()" class="text-slate-400 hover:text-white ml-2 text-xs"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div id="live-captions" class="fixed bottom-16 left-1/2 -translate-x-1/2 w-[min(92vw,720px)] bg-white/95 text-slate-800 border-2 border-govAccent rounded-xl shadow-xl px-4 py-3 z-40 hidden" role="region" aria-live="polite">
+    <div class="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-govBlue mb-1"><i class="fa-solid fa-closed-captioning"></i><span>Live captions / लाइव कैप्शन</span></div>
+    <p id="live-captions-text" class="text-sm font-semibold leading-5"></p>
+  </div>
+
+  <div id="kiosk-container" class="space-y-4">
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+      <div class="flex justify-between items-center text-xs font-bold text-slate-600">
+        <span class="flex items-center gap-2">
+          <span class="bg-govBlue text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]" id="step-number-badge">1</span>
+          <span id="step-title-text" class="text-govNavy font-bold uppercase tracking-wide">Welcome</span>
+        </span>
+        <span id="step-count-text" class="text-slate-400">Stage 1 of 7</span>
+      </div>
+      <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+        <div id="kiosk-progress-bar" class="bg-govAccent h-full transition-all duration-300 rounded-full" style="width: 14%;"></div>
+      </div>
+    </div>
+    <div id="kiosk-screen-content" class="min-h-[520px] flex flex-col justify-between bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-md relative"></div>
+  </div>
+
+  <div id="doctor-container" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col gap-4">
+      <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+        <div>
+          <h2 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fa-solid fa-users text-govBlue"></i> OPD Consultation Queue</h2>
+          <p class="text-xs text-slate-500" id="doctor-queue-room">General OPD - Room 104 | Dr. A. Sharma</p>
+        </div>
+        <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-2.5 py-1 rounded-full border border-emerald-200">6 Waiting</span>
+      </div>
+      <div class="space-y-2.5 overflow-y-auto max-h-[520px] pr-1" id="doctor-queue-list">
+        <div onclick="loadDoctorPatient('A-127')" class="p-3 rounded-lg border-2 border-govBlue bg-blue-50/50 cursor-pointer hover:bg-blue-50">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-black text-sm text-govNavy bg-blue-200 px-2 py-0.5 rounded">A-127</span><span class="font-bold text-slate-800 text-sm">Rajesh Kumar</span></div>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check"></i> Ready</span>
+          </div>
+          <div class="text-xs text-slate-600 flex justify-between items-center mt-2"><span>42Y / M</span><span>Wait: 3–5m</span><span class="font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Fever / 3 Days</span></div>
+        </div>
+        <div onclick="loadDoctorPatient('A-128')" class="p-3 rounded-lg border border-red-300 bg-red-50/70 cursor-pointer hover:bg-red-100">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-black text-sm text-red-900 bg-red-200 px-2 py-0.5 rounded">A-128</span><span class="font-bold text-red-950 text-sm">Suresh Patel</span></div>
+            <span class="text-[10px] bg-red-600 text-white font-black px-2 py-0.5 rounded animate-pulse">⚠ RED FLAG</span>
+          </div>
+          <div class="text-xs text-red-800 flex justify-between items-center mt-2"><span>48Y / M</span><span class="font-bold text-red-700">Acute Chest Pain</span></div>
+        </div>
+        <div onclick="loadDoctorPatient('A-130')" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-govBlue hover:bg-blue-50/40 cursor-pointer">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-black text-sm text-govNavy bg-slate-100 px-2 py-0.5 rounded">A-130</span><span class="font-bold text-slate-800 text-sm">Nikhil Verma</span></div>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check"></i> Ready</span>
+          </div>
+          <div class="text-xs text-slate-600 flex justify-between items-center mt-2"><span>19Y / M</span><span>9399750392</span><span class="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Sore Throat / 2D</span></div>
+        </div>
+        <div onclick="loadDoctorPatient('A-131')" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-govBlue hover:bg-blue-50/40 cursor-pointer">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-black text-sm text-govNavy bg-slate-100 px-2 py-0.5 rounded">A-131</span><span class="font-bold text-slate-800 text-sm">Kanha Sahu</span></div>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check"></i> Ready</span>
+          </div>
+          <div class="text-xs text-slate-600 flex justify-between items-center mt-2"><span>18Y / M</span><span>8269888037</span><span class="font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">Rhinitis / 4D</span></div>
+        </div>
+        <div onclick="loadDoctorPatient('A-132')" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-govBlue hover:bg-blue-50/40 cursor-pointer">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-black text-sm text-govNavy bg-slate-100 px-2 py-0.5 rounded">A-132</span><span class="font-bold text-slate-800 text-sm">Lakshaya Nashine</span></div>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check"></i> Ready</span>
+          </div>
+          <div class="text-xs text-slate-600 flex justify-between items-center mt-2"><span>20Y / M</span><span>8103026548</span><span class="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">Acidity / 3D</span></div>
+        </div>
+        <div onclick="loadDoctorPatient('A-129')" class="p-3 rounded-lg border border-slate-200 bg-white opacity-75 hover:opacity-100 cursor-pointer">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex items-center gap-2"><span class="font-bold text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">A-129</span><span class="font-bold text-slate-700 text-sm">Meena Sharma</span></div>
+            <span class="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded">Follow-up</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">35Y / F • Diabetes Follow-up</div>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between space-y-6" id="doctor-patient-detail"></div>
+  </div>
+</main>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[80] flex items-center justify-center p-3 hidden overflow-y-auto">
+  <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border-t-4 border-govAccent relative my-auto overflow-hidden">
+    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <h2 class="text-base font-extrabold text-govNavy">National Digital Health Portal</h2>
+      <button onclick="closeAuthModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="flex border-b border-slate-200 bg-slate-100 text-xs font-bold">
+      <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-3 border-b-2 border-govAccent text-govNavy bg-white">Login / लॉगिन</button>
+      <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-3 border-b-2 border-transparent text-slate-600">Register / नया पंजीकरण</button>
+    </div>
+    <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+      <div id="auth-alert" class="hidden p-3 rounded-lg text-xs font-medium border"></div>
+      <div id="auth-panel-login" class="space-y-4">
+        <form id="form-login-otp" onsubmit="handleOtpLoginSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ABHA Number or Mobile Number</label>
+            <input type="text" id="login-otp-identifier" value="9876543210" class="w-full px-3 py-2.5 text-xs rounded-lg border border-slate-300 outline-none font-medium" required />
+          </div>
+          <div class="bg-blue-50/70 p-3 rounded-xl border border-blue-200 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-700">Enter 6-Digit OTP</span>
+              <span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[10px]">Demo: <strong>123456</strong></span>
+            </div>
+            <input type="text" id="input-otp-code" maxlength="6" value="123456" class="w-full text-center text-lg font-black tracking-widest py-2 rounded-lg border border-blue-300 bg-white outline-none" />
+          </div>
+          <button type="submit" class="w-full py-3 bg-govBlue hover:bg-govNavy text-white rounded-xl text-xs font-extrabold shadow-md flex items-center justify-center gap-2">
+            <i class="fa-solid fa-right-to-bracket"></i> Verify OTP & Login
+          </button>
+        </form>
+        <div class="border-t pt-3">
+          <span class="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-2">Quick Demo Logins:</span>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <button type="button" onclick="quickLoginAs('usr-nikhil')" class="p-2 rounded-lg border border-blue-200 bg-blue-50/50 text-left"><div class="font-bold text-[11px]">Nikhil Verma</div><div class="text-[10px]">19Y</div></button>
+            <button type="button" onclick="quickLoginAs('usr-kanha')" class="p-2 rounded-lg border border-teal-200 bg-teal-50/50 text-left"><div class="font-bold text-[11px]">Kanha Sahu</div><div class="text-[10px]">18Y</div></button>
+            <button type="button" onclick="quickLoginAs('usr-lakshaya')" class="p-2 rounded-lg border border-purple-200 bg-purple-50/50 text-left"><div class="font-bold text-[11px]">Lakshaya Nashine</div><div class="text-[10px]">20Y</div></button>
+            <button type="button" onclick="quickLoginAs('usr-1')" class="p-2 rounded-lg border border-slate-200 bg-slate-50 text-left"><div class="font-bold text-[11px]">Rajesh Kumar</div><div class="text-[10px]">42Y</div></button>
+            <button type="button" onclick="quickLoginAs('doctor')" class="p-2 rounded-lg border border-emerald-200 bg-emerald-50/50 text-left col-span-2"><div class="font-bold text-[11px]">Dr. A. Sharma</div><div class="text-[10px]">Doctor OPD 104</div></button>
+          </div>
+        </div>
+      </div>
+      <div id="auth-panel-register" class="space-y-4 hidden">
+        <form id="form-register" onsubmit="handleRegistrationSubmit(event)" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="reg-name" placeholder="Full Name" class="px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none" required />
+            <input type="tel" id="reg-mobile" placeholder="10-digit mobile" pattern="[0-9]{10}" class="px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none" required />
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <input type="number" id="reg-age" placeholder="Age" min="1" max="120" class="px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none" required />
+            <select id="reg-gender" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white outline-none"><option>Female</option><option>Male</option><option>Other</option></select>
+            <select id="reg-role" class="px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white outline-none"><option value="patient">Patient</option><option value="doctor">Doctor</option></select>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="password" id="reg-password" placeholder="Password" minlength="6" class="px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none" required />
+            <input type="password" id="reg-confirm-password" placeholder="Confirm password" minlength="6" class="px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none" required />
+          </div>
+          <label class="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+            <input type="checkbox" id="reg-create-abha" checked class="mt-0.5" />
+            <span>Automatically generate & link a 14-digit ABHA ID.</span>
+          </label>
+          <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-md">
+            <i class="fa-solid fa-id-badge"></i> Create Account & Proceed
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="bg-slate-50 px-6 py-3 border-t text-right">
+      <button onclick="closeAuthModal()" class="font-bold text-slate-600 text-xs">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="source-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 relative">
+    <button onclick="closeSourceModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <div class="font-bold text-govNavy border-b pb-2"><span id="modal-title">Source Traceability</span></div>
+    <div class="bg-slate-50 p-4 rounded-lg border text-xs font-mono space-y-2" id="modal-content"></div>
+    <div class="flex justify-end"><button onclick="closeSourceModal()" class="px-4 py-2 bg-govBlue text-white rounded-lg text-xs font-bold">Close</button></div>
+  </div>
+</div>
+
+<div id="consent-blocked-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-t-4 border-govAccent space-y-4">
+    <h2 class="text-lg font-extrabold text-govNavy">Consent Required</h2>
+    <p class="text-sm text-slate-700">Please agree to the data consent terms before continuing.</p>
+    <p class="text-sm text-slate-600">रोगी पंजीकरण जारी रखने के लिए डेटा सहमति स्वीकार करें।</p>
+    <div class="flex justify-end"><button onclick="closeConsentBlockedMessage()" class="px-5 py-2.5 bg-govBlue text-white rounded-lg font-bold text-sm">Close</button></div>
+  </div>
+</div>
+
+<div id="emergency-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-t-4 border-red-600 space-y-4">
+    <h2 class="text-lg font-extrabold text-red-800">Emergency Assistance</h2>
+    <p class="text-sm text-slate-700">If you have severe chest pain, difficulty breathing, heavy bleeding, or loss of consciousness, do not wait for routine intake.</p>
+    <div class="flex gap-2">
+      <button onclick="goToEmergencyTriage()" class="flex-1 px-4 py-3 bg-red-700 hover:bg-red-800 text-white rounded-lg font-bold text-sm">Send Priority Alert</button>
+      <button onclick="closeEmergencyModal()" class="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg font-bold text-sm">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="about-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[85] flex items-center justify-center p-3 hidden overflow-y-auto">
+  <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border-t-4 border-govAccent my-auto overflow-hidden">
+    <div class="bg-gradient-to-r from-[#06038D] to-[#1a237e] text-white p-6 relative">
+      <button onclick="closeAboutModal()" class="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      <h2 class="text-2xl font-black">Team data_mindflair</h2>
+      <p class="text-xs text-blue-100 mt-1">Creators of आयुषमित्र (AyushMitra) • Digital Patient Intake System</p>
+    </div>
+    <div class="p-6 space-y-3 max-h-[70vh] overflow-y-auto">
+      <p class="text-slate-600 text-sm">AyushMitra was designed by <strong>data_mindflair</strong> as an accessible, AI-assisted digital patient intake kiosk.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div class="p-3 rounded-xl border-2 border-amber-300 bg-amber-50/50">
+          <strong>Homeshwar Manhare</strong>
+          <div class="text-[10px] font-bold text-amber-800">Team Leader</div>
+          <p class="text-[11px] text-slate-600 mt-1">Directs project architecture, system integration, and team execution to drive product development forward.</p>
+        </div>
+        <div class="p-3 rounded-xl border border-slate-200">
+          <strong>Ayaz Memon</strong>
+          <div class="text-[10px] font-bold text-govNavy">Research</div>
+          <p class="text-[11px] text-slate-600 mt-1">Leads healthcare domain analysis, clinical case workflows, and user requirements gathering.</p>
+        </div>
+        <div class="p-3 rounded-xl border border-slate-200">
+          <strong>Sheefa Khan</strong>
+          <div class="text-[10px] font-bold text-govNavy">Technical Field</div>
+          <p class="text-[11px] text-slate-600 mt-1">Manages system integration, OCR pipeline testing, and technical deployment workflows.</p>
+        </div>
+        <div class="p-3 rounded-xl border border-slate-200">
+          <strong>Seema Chandrakar</strong>
+          <div class="text-[10px] font-bold text-govNavy">UI & Interface</div>
+          <p class="text-[11px] text-slate-600 mt-1">Designs accessible multi-language kiosk UI and patient-friendly user experiences.</p>
+        </div>
+        <div class="p-3 rounded-xl border border-slate-200">
+          <strong>Nidhi Singh</strong>
+          <div class="text-[10px] font-bold text-govNavy">Kiosk Software</div>
+          <p class="text-[11px] text-slate-600 mt-1">Develops frontend kiosk workflows, stage transitions, and interactive user components.</p>
+        </div>
+        <div class="p-3 rounded-xl border border-slate-200">
+          <strong>Manish Thadani</strong>
+          <div class="text-[10px] font-bold text-govNavy">Presenter / Research</div>
+          <p class="text-[11px] text-slate-600 mt-1">Crafts project demonstrations, clinical pitch structures, and research data synthesis.</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-50 px-6 py-3 border-t text-right">
+      <button onclick="closeAboutModal()" class="px-5 py-2 bg-govNavy text-white rounded-lg text-xs font-bold">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-[#06038D] text-slate-200 border-t-4 border-[#FF9933] mt-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
+      <div class="lg:col-span-2">
+        <div class="font-extrabold text-white text-lg">आयुषमित्र</div>
+        <div class="text-xs text-slate-400">Digital Patient Intake System</div>
+        <p class="text-xs leading-5 text-slate-400 mt-4 max-w-md">A student-built SIH prototype demonstrating accessible, AI-assisted patient history collection.</p>
+      </div>
+      <div>
+        <h2 class="font-bold text-white text-sm mb-3">Services</h2>
+        <ul class="space-y-2 text-xs text-slate-400">
+          <li><button onclick="switchMode('kiosk'); goToStep(1);" class="hover:text-white text-left">Patient intake</button></li>
+          <li><button onclick="switchMode('kiosk'); goToStep(12);" class="hover:text-white text-left">Document extraction</button></li>
+          <li><button onclick="switchMode('doctor');" class="hover:text-white text-left">Doctor summary</button></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="font-bold text-white text-sm mb-3">Help</h2>
+        <ul class="space-y-2 text-xs text-slate-400">
+          <li><button onclick="showPortalAbout()" class="hover:text-white text-amber-300 font-bold">About data_mindflair</button></li>
+          <li><button onclick="openAuthModal('login')" class="hover:text-white">User Portal Login</button></li>
+          <li><button onclick="showEmergencyModal()" class="text-red-300 font-semibold hover:text-red-200">Emergency Contacts</button></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mt-4 pt-3 border-t border-blue-800 text-center text-xs font-semibold text-[#FFB74D]">
+      Disclaimer: AyushMitra is a student prototype for demonstration purposes only. Not an official Government of India website.
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ==================== OPD DIRECTORY ==================== */
+const opdDirectory = [
+  { name: "General Medicine OPD", room: "Room 104", doctor: "Dr. A. Sharma", timing: "09:00 AM - 02:00 PM", icon: "fa-stethoscope" },
+  { name: "Ayurveda & Kayachikitsa OPD", room: "Room 108", doctor: "Dr. V. K. Nambiar", timing: "09:00 AM - 01:00 PM", icon: "fa-leaf" },
+  { name: "Pediatrics & Child Care OPD", room: "Room 102", doctor: "Dr. Meenakshi Rao", timing: "09:30 AM - 02:00 PM", icon: "fa-baby" },
+  { name: "Cardiology & Chest Clinic", room: "Room 201", doctor: "Dr. S. K. Gupta", timing: "10:00 AM - 03:00 PM", icon: "fa-heart-pulse" },
+  { name: "Orthopedics & Joint Clinic", room: "Room 105", doctor: "Dr. R. P. Singh", timing: "09:00 AM - 02:00 PM", icon: "fa-bone" },
+  { name: "ENT & Throat Specialist", room: "Room 106", doctor: "Dr. Ananya Roy", timing: "09:00 AM - 01:30 PM", icon: "fa-head-side-cough" }
+];
+
+/* ==================== DEMO USERS ==================== */
+const defaultUsers = [
+  { id: 'usr-1', name: 'Rajesh Kumar', role: 'patient', mobile: '9876543210', abha: '91-2384-1029-4821', age: 42, gender: 'Male', token: 'A-127' },
+  { id: 'usr-nikhil', name: 'Nikhil Verma', role: 'patient', mobile: '9399750392', abha: '91-9399-7503-9219', age: 19, gender: 'Male', token: 'A-130' },
+  { id: 'usr-kanha', name: 'Kanha Sahu', role: 'patient', mobile: '8269888037', abha: '91-8269-8880-3718', age: 18, gender: 'Male', token: 'A-131' },
+  { id: 'usr-lakshaya', name: 'Lakshaya Nashine', role: 'patient', mobile: '8103026548', abha: '91-8103-0265-4820', age: 20, gender: 'Male', token: 'A-132' },
+  { id: 'usr-2', name: 'Dr. A. Sharma', role: 'doctor', email: 'dr.sharma@ayush.gov.in' }
+];
+
+/* ==================== SYMPTOM-SPECIFIC KNOWLEDGE BASE ==================== */
+const symptomSuggestions = {
+  'Fever & Chills': {
+    category: 'Standard Clinical Follow-up',
+    badge: 'Fever Profile',
+    aiQuestionEn: '"How many days have you had a fever? Are you also experiencing chills, sweating, or body ache?"',
+    aiQuestionHi: '"आपको बुखार कितने दिनों से है? क्या ठंड, पसीना या बदन दर्द भी है?"',
+    options: [
+      { textEn: 'Fever for 3 days with body pain & shivering', textHi: '3 दिन से बुखार + बदन दर्द और कपकपी', duration: '3 Days' },
+      { textEn: 'Mild fever since this morning', textHi: 'आज सुबह से हल्का बुखार', duration: '1 Day' },
+      { textEn: 'High fever for 1 week with weakness', textHi: '1 हफ्ते से तेज़ बुखार और कमजोरी', duration: '7 Days' }
+    ]
+  },
+  'Severe Headache': {
+    category: 'Neurological / Stress Assessment',
+    badge: 'Headache Profile',
+    aiQuestionEn: '"Where is the headache located? Is it accompanied by nausea, sensitivity to light, or neck stiffness?"',
+    aiQuestionHi: '"सिरदर्द कहाँ पर हो रहा है? क्या उल्टी जैसा महसूस होना या रोशनी से परेशानी भी है?"',
+    options: [
+      { textEn: 'Throbbing headache on one side (2 days)', textHi: 'एक तरफ तेज़ टीस मारने वाला सिरदर्द (2 दिन)', duration: '2 Days' },
+      { textEn: 'Constant pressure across forehead & neck', textHi: 'माथे और गर्दन में लगातार भारीपन', duration: '3 Days' },
+      { textEn: 'Sudden intense pain after stress/lack of sleep', textHi: 'तनाव या नींद पूरी न होने के बाद अचानक दर्द', duration: '1 Day' }
+    ]
+  },
+  'Stomach Pain': {
+    category: 'Gastrointestinal Assessment',
+    badge: 'Abdominal Profile',
+    aiQuestionEn: '"Is the stomach pain upper or lower abdominal? Did it start after eating, or with acidity/vomiting?"',
+    aiQuestionHi: '"पेट दर्द किस हिस्से में है? क्या यह खाने के बाद शुरू हुआ या एसिडिटी/उल्टी है?"',
+    options: [
+      { textEn: 'Upper stomach burning with acidity after meals', textHi: 'खाने के बाद पेट के ऊपरी हिस्से में जलन और एसिडिटी', duration: '2 Days' },
+      { textEn: 'Sharp lower abdominal cramps', textHi: 'पेट के निचले हिस्से में तेज़ ऐंठन/मरोड़', duration: '1 Day' },
+      { textEn: 'Continuous dull pain with nausea', textHi: 'लगातार मीठा पेट दर्द और जी मिचलाना', duration: '4 Days' }
+    ]
+  },
+  'Chest Pain — Emergency': {
+    category: 'Critical Triage / Emergency Red Flag',
+    badge: 'CRITICAL ALERT',
+    aiQuestionEn: '"ATTENTION: Is the chest pain radiating to your left arm/jaw, or causing shortness of breath?"',
+    aiQuestionHi: '"ध्यान दें: क्या छाती का दर्द बाएं हाथ/जबड़े में जा रहा है या सांस लेने में तकलीफ है?"',
+    options: [
+      { textEn: 'Severe heavy chest pressure radiating to arm', textHi: 'छाती में भारी दबाव जो हाथ तक जा रहा है', duration: 'Immediate' },
+      { textEn: 'Chest pain with breathlessness & sweating', textHi: 'छाती में दर्द, सांस फूलना और पसीना', duration: 'Immediate' }
+    ]
+  }
+};
+
+/* ==================== STATE ==================== */
+let currentUser = null;
+let currentMode = 'kiosk';
+let currentStep = 1;
+let currentLang = 'en';
+let audioSynthesizer = window.speechSynthesis;
+
+const patientStages = [
+  { label: 'Welcome', steps: [1] },
+  { label: 'Language Selection', steps: [2] },
+  { label: 'Identification & consent', steps: [3, 4] },
+  { label: 'Patient profile & complaint', steps: [6, 7, 8, 9, 10] },
+  { label: 'Documents & timeline', steps: [12, 13, 14] },
+  { label: 'Review & summary', steps: [15, 16] },
+  { label: 'Consultation Token', steps: [17, 5] }
+];
+function getPatientStage(step) {
+  const s = (step === undefined) ? currentStep : step;
+  return Math.max(0, patientStages.findIndex(function (st) { return st.steps.indexOf(s) !== -1; }));
+}
+
+/* ==================== PATIENT DATA ==================== */
+let patientData = {
+  token: 'A-127', abha: '91-2384-1029-4821', abhaStatus: 'Verified',
+  name: 'Rajesh Kumar', age: 42, gender: 'Male', phone: '9876543210',
+  chiefComplaint: 'Fever & Chills',
+  voiceTranscript: '', aiVoiceSummary: '', isRedFlag: false,
+  socrates: { duration: '3 Days' },
+  documents: [{ name: 'CBC_Report_Aug2026.pdf', date: '15 Aug 2026', snippet: 'Hb: 10.2, WBC: 12,800' }]
+};
+
+/* ==================== LANGUAGE DICT ==================== */
+const langDict = {
+  en: {
+    title: 'आयुषमित्र',
+    welcome: 'Complete your medical history before consultation.',
+    start: 'START PATIENT INTAKE',
+    chooseLang: 'Choose your language',
+    identTitle: 'Patient Identification',
+    consentTitle: 'DATA CONSENT & PRIVACY',
+    agree: 'I AGREE & CONTINUE',
+    disagree: 'I DO NOT AGREE',
+    tokenTitle: 'YOUR CONSULTATION TOKEN',
+    profileTitle: 'Basic Patient Details',
+    complaintTitle: 'What brings you to the hospital today?',
+    interviewTitle: 'AI Guided Symptom Questionnaire',
+    docTitle: 'Upload Previous Medical Records',
+    ocrTitle: 'OCR / AI Record Extraction',
+    timelineTitle: 'Patient Medical Timeline',
+    reviewTitle: 'Review Your Case History',
+    summaryTitle: 'Structured Doctor Summary',
+    submitSuccess: 'Your Medical History Has Been Submitted',
+    howTitle: 'How Ayushmitra Works',
+    howSubtitle: 'A simple path from patient entry to doctor consultation',
+    howStep1Title: 'Patient Details', howStep1Text: 'Collect basic patient information securely.',
+    howStep2Title: 'Guided Case-Taking', howStep2Text: 'Capture symptoms and medical history through a simple questionnaire.',
+    howStep3Title: 'Doctor-Ready Summary', howStep3Text: 'Convert patient responses into a structured case summary.'
+  },
+  hi: {
+    title: 'आयुषमित्र',
+    welcome: 'डॉक्टर से मिलने से पहले अपनी बीमारी की जानकारी दर्ज करें।',
+    start: 'रोगी पंजीकरण शुरू करें',
+    chooseLang: 'अपनी भाषा चुनें',
+    identTitle: 'रोगी पहचान (ABHA)',
+    consentTitle: 'डेटा सहमति एवं गोपनीयता',
+    agree: 'मैं सहमत हूँ',
+    disagree: 'मैं सहमत नहीं हूँ',
+    tokenTitle: 'आपका परामर्श टोकन',
+    profileTitle: 'प्रारंभिक रोगी विवरण',
+    complaintTitle: 'आज आपको क्या समस्या है?',
+    interviewTitle: 'एआई निर्देशित लक्षण प्रश्नावली',
+    docTitle: 'पुराने मेडिकल पर्चे अपलोड करें',
+    ocrTitle: 'दस्तावेज़ एआई एक्सट्रेक्शन',
+    timelineTitle: 'मेडिकल टाइमलाइन',
+    reviewTitle: 'दर्ज की गई जानकारी जांचें',
+    summaryTitle: 'डॉक्टर के लिए क्लिनिकल सारांश',
+    submitSuccess: 'आपका मेडिकल इतिहास जमा कर दिया गया है',
+    howTitle: 'आयुषमित्र कैसे काम करता है',
+    howSubtitle: 'रोगी के पंजीकरण से डॉक्टर के परामर्श तक सरल प्रक्रिया',
+    howStep1Title: 'रोगी का विवरण', howStep1Text: 'रोगी की मूल जानकारी सुरक्षित रूप से दर्ज करें।',
+    howStep2Title: 'निर्देशित केस-टेकिंग', howStep2Text: 'सरल प्रश्नावली के माध्यम से लक्षण और चिकित्सीय इतिहास दर्ज करें।',
+    howStep3Title: 'डॉक्टर के लिए सारांश', howStep3Text: 'रोगी के उत्तरों को व्यवस्थित केस सारांश में बदलें।'
+  }
+};
+
+/* ==================== INIT ==================== */
+window.addEventListener('DOMContentLoaded', function () {
+  try {
+    const savedLang = sessionStorage.getItem('ayushmitra_lang');
+    if (savedLang === 'en' || savedLang === 'hi') currentLang = savedLang;
+  } catch (e) {}
+  initAuth();
+  renderKioskStep();
+});
+
+/* ==================== AUTH & SELECTION LOGIC ==================== */
+function selectChiefSymptom(symptom, isEmergency) {
+  patientData.chiefComplaint = symptom;
+  patientData.isRedFlag = Boolean(isEmergency);
+  if (isEmergency) {
+    goToStep(10);
+  } else {
+    goToStep(8);
+  }
+}
+
+function selectSocratesOption(text, duration) {
+  patientData.voiceTranscript = text;
+  patientData.socrates.duration = duration;
+  patientData.aiVoiceSummary = 'Chief Complaint: ' + patientData.chiefComplaint + '. Recorded specifics: ' + text;
+  goToStep(12);
+}
+
+function initAuth() {
+  const savedUser = localStorage.getItem('ayushmitra_user');
+  if (savedUser) {
+    try { currentUser = JSON.parse(savedUser); syncUserWithPatientData(currentUser); }
+    catch (e) { currentUser = null; }
+  }
+  renderAuthNav();
+}
+function syncUserWithPatientData(user) {
+  if (!user || user.role !== 'patient') return;
+  patientData.name = user.name || patientData.name;
+  patientData.phone = user.mobile || patientData.phone;
+  patientData.age = user.age || patientData.age;
+  patientData.gender = user.gender || patientData.gender;
+  if (user.abha) { patientData.abha = user.abha; patientData.abhaStatus = 'Verified'; }
+  if (user.token) patientData.token = user.token;
+}
+function renderAuthNav() {
+  const nav = document.getElementById('nav-auth-container');
+  const hdr = document.getElementById('header-auth-container');
+  if (!currentUser) {
+    if (nav) nav.innerHTML = '<button onclick="openAuthModal(\'login\')" class="px-3.5 py-2 rounded-lg bg-[#FF9933] hover:bg-[#E68A00] text-white text-xs font-black flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-user-lock"></i><span>Login / Register</span></button>';
+    if (hdr) hdr.innerHTML = '<button onclick="openAuthModal(\'login\')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-govBlue hover:bg-govNavy text-white flex items-center gap-1.5"><i class="fa-solid fa-user-lock"></i><span>Login / Register</span></button>';
+  } else {
+    const isDoc = currentUser.role === 'doctor';
+    if (nav) nav.innerHTML = '<button onclick="handleLogout()" class="px-3 py-1.5 rounded-md bg-white text-govNavy text-xs font-bold flex items-center gap-2 border border-slate-200"><i class="fa-solid ' + (isDoc ? 'fa-user-doctor' : 'fa-circle-check') + '"></i><span>' + currentUser.name + '</span><i class="fa-solid fa-right-from-bracket text-red-600"></i></button>';
+    if (hdr) hdr.innerHTML = '<button onclick="handleLogout()" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-300 text-slate-600 hover:bg-red-50 hover:text-red-600"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>';
+  }
+}
+function openAuthModal(tab) { document.getElementById('auth-modal').classList.remove('hidden'); switchAuthTab(tab || 'login'); hideAuthAlert(); }
+function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); hideAuthAlert(); }
+function switchAuthTab(tab) {
+  const tl = document.getElementById('tab-login'), tr = document.getElementById('tab-register');
+  const pl = document.getElementById('auth-panel-login'), pr = document.getElementById('auth-panel-register');
+  hideAuthAlert();
+  if (tab === 'login') {
+    tl.className = 'flex-1 py-3 border-b-2 border-govAccent text-govNavy bg-white font-bold';
+    tr.className = 'flex-1 py-3 border-b-2 border-transparent text-slate-600 font-bold';
+    pl.classList.remove('hidden'); pr.classList.add('hidden');
+  } else {
+    tr.className = 'flex-1 py-3 border-b-2 border-govAccent text-govNavy bg-white font-bold';
+    tl.className = 'flex-1 py-3 border-b-2 border-transparent text-slate-600 font-bold';
+    pr.classList.remove('hidden'); pl.classList.add('hidden');
+  }
+}
+function showAuthAlert(msg, type) {
+  const a = document.getElementById('auth-alert');
+  if (!a) return;
+  a.classList.remove('hidden');
+  a.className = 'p-3 rounded-lg text-xs font-medium border ' + (type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200');
+  a.innerHTML = msg;
+}
+function hideAuthAlert() { const a = document.getElementById('auth-alert'); if (a) a.classList.add('hidden'); }
+function handleOtpLoginSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('login-otp-identifier').value.trim();
+  const code = document.getElementById('input-otp-code').value.trim();
+  if (code !== '123456') { showAuthAlert('Invalid OTP. Demo code: 123456'); return; }
+  let user = defaultUsers.find(function (u) { return u.mobile === id || u.abha === id; });
+  if (!user) user = { id: 'usr-' + Date.now(), name: 'Patient ' + id.slice(-4), role: 'patient', mobile: id, abha: '91-2384-1029-' + Math.floor(1000 + Math.random() * 9000), age: 30, gender: 'Male', token: 'A-' + Math.floor(100 + Math.random() * 900) };
+  loginUser(user);
+}
+function handleRegistrationSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const mobile = document.getElementById('reg-mobile').value.trim();
+  const age = parseInt(document.getElementById('reg-age').value.trim(), 10) || 30;
+  const gender = document.getElementById('reg-gender').value;
+  const pwd = document.getElementById('reg-password').value;
+  const cpwd = document.getElementById('reg-confirm-password').value;
+  if (pwd !== cpwd) { showAuthAlert('Passwords do not match!'); return; }
+  const createAbha = document.getElementById('reg-create-abha').checked;
+  const abha = createAbha ? '91-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) : 'ABHA creation pending';
+  const newUser = { id: 'usr-' + Date.now(), name: name, role: 'patient', mobile: mobile, age: age, gender: gender, abha: abha, token: 'A-' + Math.floor(100 + Math.random() * 900) };
+  loginUser(newUser, true);
+}
+function quickLoginAs(key) {
+  const user = defaultUsers.find(function (u) { return u.id === key || u.role === key; });
+  if (user) loginUser(user);
+}
+function loginUser(user, isNew) {
+  currentUser = user;
+  localStorage.setItem('ayushmitra_user', JSON.stringify(user));
+  syncUserWithPatientData(user);
+  renderAuthNav();
+  closeAuthModal();
+  const msg = isNew ? 'Welcome, ' + user.name + '!' : 'Logged in as ' + user.name;
+  showToast(msg, 'success');
+  playAudioGuidance(msg);
+  if (user.role === 'doctor') switchMode('doctor');
+  else { switchMode('kiosk'); renderKioskStep(); }
+}
+function handleLogout() {
+  const name = currentUser ? currentUser.name : 'User';
+  currentUser = null;
+  localStorage.removeItem('ayushmitra_user');
+  renderAuthNav();
+  showToast('Logged out. Goodbye ' + name + '!', 'info');
+  switchMode('kiosk');
+  goToStep(1);
+}
+
+/* ==================== TOAST & MODAL HELPERS ==================== */
+let toastTimeout = null;
+function showToast(message, type) {
+  const toast = document.getElementById('toast-banner');
+  const inner = document.getElementById('toast-inner');
+  const msg = document.getElementById('toast-message');
+  const icon = document.getElementById('toast-icon');
+  if (!toast || !msg) return;
+  clearTimeout(toastTimeout);
+  msg.innerText = message;
+  if (type === 'success') {
+    inner.className = 'flex items-center gap-3 p-4 rounded-xl shadow-2xl border text-sm font-semibold bg-emerald-50 text-emerald-900 border-emerald-300';
+    icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-xl"></i>';
+  } else if (type === 'error') {
+    inner.className = 'flex items-center gap-3 p-4 rounded-xl shadow-2xl border text-sm font-semibold bg-red-50 text-red-900 border-red-300';
+    icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-600 text-xl"></i>';
+  } else {
+    inner.className = 'flex items-center gap-3 p-4 rounded-xl shadow-2xl border text-sm font-semibold bg-white text-slate-800 border-slate-200';
+    icon.innerHTML = '<i class="fa-solid fa-circle-info text-govAccent text-xl"></i>';
+  }
+  toast.classList.remove('translate-y-[-120%]', 'opacity-0', 'pointer-events-none');
+  toast.classList.add('translate-y-0', 'opacity-100');
+  toastTimeout = setTimeout(dismissToast, 4500);
+}
+function dismissToast() {
+  const toast = document.getElementById('toast-banner');
+  if (toast) {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('translate-y-[-120%]', 'opacity-0', 'pointer-events-none');
+  }
+}
+function openExternalService() { window.open('https://ayush.gov.in/', '_blank', 'noopener,noreferrer'); showToast('Opening Ministry of Ayush...', 'info'); }
+function showPortalAbout() { document.getElementById('about-modal').classList.remove('hidden'); }
+function closeAboutModal() { document.getElementById('about-modal').classList.add('hidden'); }
+
+/* ==================== LANGUAGE ==================== */
+function setLanguage(lang) {
+  currentLang = lang;
+  try { sessionStorage.setItem('ayushmitra_lang', lang); } catch (e) {}
+  renderKioskStep();
+}
+function setLanguageFromMenu(lang) {
+  setLanguage(lang);
+  const menu = document.getElementById('settings-menu');
+  if (menu) menu.classList.add('hidden');
+}
+function toggleSettingsMenu() {
+  const menu = document.getElementById('settings-menu');
+  const btn = document.getElementById('settings-menu-button');
+  if (!menu) return;
+  const isHidden = menu.classList.toggle('hidden');
+  if (btn) btn.setAttribute('aria-expanded', String(!isHidden));
+}
+
+/* ==================== SESSION RESET ==================== */
+function finishSession() { resetKioskSession(); }
+function resetKioskSession() {
+  patientData = {
+    token: 'A-' + Math.floor(100 + Math.random() * 900),
+    abha: '', abhaStatus: 'Not provided', name: '', age: '', gender: '', phone: '',
+    chiefComplaint: '', voiceTranscript: '', aiVoiceSummary: '', isRedFlag: false,
+    socrates: { duration: '' },
+    documents: []
+  };
+  try { sessionStorage.removeItem('ayushmitra_patient_session'); } catch (e) {}
+  stopAudioGuidance();
+  currentStep = 1;
+  currentMode = 'kiosk';
+  const kiosk = document.getElementById('kiosk-container');
+  const doctor = document.getElementById('doctor-container');
+  const bk = document.getElementById('mode-btn-kiosk');
+  const bd = document.getElementById('mode-btn-doctor');
+  if (kiosk) kiosk.classList.remove('hidden');
+  if (doctor) doctor.classList.add('hidden');
+  if (bk) bk.className = 'px-3 py-1 text-xs font-semibold rounded bg-govAccent text-white flex items-center gap-1';
+  if (bd) bd.className = 'px-3 py-1 text-xs font-semibold rounded text-slate-600 hover:text-white flex items-center gap-1';
+  renderKioskStep();
+  showToast('Session ended successfully. Ready for the next patient.', 'success');
+  playAudioGuidance('Session ended. Welcome. Please choose your language to begin.');
+}
+
+/* ==================== MODE SWITCH ==================== */
+function switchMode(mode) {
+  currentMode = mode;
+  const kiosk = document.getElementById('kiosk-container');
+  const doctor = document.getElementById('doctor-container');
+  const bk = document.getElementById('mode-btn-kiosk');
+  const bd = document.getElementById('mode-btn-doctor');
+  if (mode === 'kiosk') {
+    if (kiosk) kiosk.classList.remove('hidden');
+    if (doctor) doctor.classList.add('hidden');
+    if (bk) bk.className = 'px-3 py-1 text-xs font-semibold rounded bg-govAccent text-white flex items-center gap-1';
+    if (bd) bd.className = 'px-3 py-1 text-xs font-semibold rounded text-slate-600 hover:text-white flex items-center gap-1';
+    renderKioskStep();
+  } else {
+    if (kiosk) kiosk.classList.add('hidden');
+    if (doctor) doctor.classList.remove('hidden');
+    if (bd) bd.className = 'px-3 py-1 text-xs font-semibold rounded bg-govAccent text-white flex items-center gap-1';
+    if (bk) bk.className = 'px-3 py-1 text-xs font-semibold rounded text-slate-600 hover:text-white flex items-center gap-1';
+    renderDoctorView();
+  }
+}
+
+/* ==================== AUDIO ==================== */
+function playAudioGuidance(text) {
+  showLiveCaption(text);
+  if ('speechSynthesis' in window) {
+    audioSynthesizer.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = currentLang === 'hi' ? 'hi-IN' : 'en-US';
+    u.rate = 0.95;
+    const toast = document.getElementById('audio-toast');
+    const tText = document.getElementById('audio-toast-text');
+    if (tText) tText.innerText = '🔊 Reading: "' + text.substring(0, 32) + '..."';
+    if (toast) toast.classList.remove('hidden');
+    u.onend = function () { if (toast) toast.classList.add('hidden'); hideLiveCaption(); };
+    audioSynthesizer.speak(u);
+  }
+}
+function stopAudioGuidance() {
+  if (audioSynthesizer) audioSynthesizer.cancel();
+  const t = document.getElementById('audio-toast');
+  if (t) t.classList.add('hidden');
+  hideLiveCaption();
+}
+function showLiveCaption(text) {
+  const c = document.getElementById('live-captions');
+  const t = document.getElementById('live-captions-text');
+  if (!c || !t) return;
+  t.textContent = text;
+  c.classList.remove('hidden');
+}
+function hideLiveCaption() {
+  const c = document.getElementById('live-captions');
+  if (c) c.classList.add('hidden');
+}
+function promptVoiceMode() {
+  const currentSymptomInfo = symptomSuggestions[patientData.chiefComplaint];
+  const q = currentSymptomInfo 
+    ? (currentLang === 'hi' ? currentSymptomInfo.aiQuestionHi : currentSymptomInfo.aiQuestionEn)
+    : (currentLang === 'hi' ? 'नमस्ते, अपनी समस्या विस्तार से बताएं।' : 'Hello, please describe your problem in detail.');
+  playAudioGuidance(q);
+}
+function startVoiceRecognition() {
+  patientData.voiceTranscript = currentLang === 'hi' ? 'लक्षण पिछले कुछ दिनों से बढ़ रहे हैं।' : 'Symptoms have been worsening over the last few days.';
+  patientData.aiVoiceSummary = 'Reported complaint: ' + patientData.chiefComplaint + '. Voice intake: ' + patientData.voiceTranscript;
+  showLiveCaption(patientData.voiceTranscript);
+  renderKioskStep();
+}
+
+/* ==================== MODALS & TRIAGE ==================== */
+function showConsentBlockedMessage() { document.getElementById('consent-blocked-modal').classList.remove('hidden'); }
+function closeConsentBlockedMessage() { document.getElementById('consent-blocked-modal').classList.add('hidden'); }
+function showEmergencyModal() { document.getElementById('emergency-modal').classList.remove('hidden'); }
+function closeEmergencyModal() { document.getElementById('emergency-modal').classList.add('hidden'); }
+function goToEmergencyTriage() {
+  closeEmergencyModal();
+  patientData.isRedFlag = true;
+  patientData.token = 'E-001';
+  patientData.name = 'Emergency Walk-in';
+  patientData.chiefComplaint = 'Urgent symptoms reported at intake';
+  switchMode('doctor');
+}
+
+/* ==================== NAVIGATION ==================== */
+function goToStep(step) {
+  if (step >= 1 && step <= 17) { currentStep = step; renderKioskStep(); }
+}
+function prevStep() {
+  if (currentStep > 1) {
+    if (currentStep === 3) currentStep = 2;
+    else if (currentStep === 6) currentStep = 3;
+    else if (currentStep === 5) currentStep = 17;
+    else if (currentStep === 12) currentStep = 8;
+    else currentStep--;
+    renderKioskStep();
+  }
+}
+function startNewPatientWithoutAbha() {
+  const inp = document.getElementById('new-patient-mobile');
+  const mobile = inp ? inp.value.trim() : '';
+  if (!mobile) { playAudioGuidance('Please enter a mobile number.'); if (inp) inp.focus(); return; }
+  patientData.phone = mobile;
+  patientData.abha = 'ABHA creation pending';
+  patientData.abhaStatus = 'Pending background creation';
+  patientData.token = 'T-' + Math.floor(100 + Math.random() * 900);
+  goToStep(6);
+}
+
+/* ==================== KIOSK RENDER ==================== */
+function renderKioskStep() {
+  const container = document.getElementById('kiosk-screen-content');
+  if (!container) return;
+  const stepBadge = document.getElementById('step-number-badge');
+  const stepTitle = document.getElementById('step-title-text');
+  const stepCount = document.getElementById('step-count-text');
+  const progressBar = document.getElementById('kiosk-progress-bar');
+
+  const stageIndex = getPatientStage();
+  if (stepBadge) stepBadge.innerText = stageIndex + 1;
+  if (stepCount) stepCount.innerText = 'Stage ' + (stageIndex + 1) + ' of ' + patientStages.length;
+  if (progressBar) progressBar.style.width = Math.round(((stageIndex + 1) / patientStages.length) * 100) + '%';
+
+  const t = langDict[currentLang];
+  let html = '';
+
+  switch (currentStep) {
+    case 1:
+      if (stepTitle) stepTitle.innerText = 'Welcome / स्वागत';
+      html =
+        '<div class="text-center my-auto space-y-6 max-w-5xl mx-auto py-6">' +
+          '<div class="w-20 h-20 bg-govLightBlue text-govBlue rounded-full flex items-center justify-center mx-auto shadow-inner border border-blue-200"><i class="fa-solid fa-hospital-user text-4xl"></i></div>' +
+          '<div class="space-y-2">' +
+            '<h2 class="text-2xl sm:text-3xl font-extrabold text-govNavy">' + t.title + '</h2>' +
+            '<p class="text-slate-600 font-medium text-base">' + t.welcome + '</p>' +
+            (currentUser ? '<div class="inline-block bg-blue-50 border border-blue-200 text-govNavy font-bold px-3 py-1 rounded-full text-xs">Logged in: ' + currentUser.name + '</div>' : '') +
+          '</div>' +
+          '<div class="flex justify-center gap-3 py-2 flex-wrap">' +
+            '<button onclick="playAudioGuidance(\'' + t.welcome + '\')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 border"><i class="fa-solid fa-volume-high text-govBlue"></i> Audio Help</button>' +
+            '<button onclick="openAuthModal(\'login\')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-govBlue rounded-lg text-xs font-bold flex items-center gap-1.5 border border-blue-200"><i class="fa-solid fa-user-lock"></i> Sign In</button>' +
+          '</div>' +
+          '<section class="text-left space-y-4 pt-2">' +
+            '<div class="text-center"><h3 class="text-lg font-extrabold text-govNavy">' + t.howTitle + '</h3><p class="text-xs text-slate-500 mt-1">' + t.howSubtitle + '</p></div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
+              '<article class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><div class="flex items-center gap-3 mb-3"><span class="text-xs font-black text-govBlue">01</span><i class="fa-solid fa-id-card text-xl text-govBlue"></i></div><h4 class="font-bold text-slate-800 text-sm">' + t.howStep1Title + '</h4><p class="text-xs leading-5 text-slate-500 mt-1">' + t.howStep1Text + '</p></article>' +
+              '<article class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><div class="flex items-center gap-3 mb-3"><span class="text-xs font-black text-govBlue">02</span><i class="fa-solid fa-clipboard-list text-xl text-govBlue"></i></div><h4 class="font-bold text-slate-800 text-sm">' + t.howStep2Title + '</h4><p class="text-xs leading-5 text-slate-500 mt-1">' + t.howStep2Text + '</p></article>' +
+              '<article class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><div class="flex items-center gap-3 mb-3"><span class="text-xs font-black text-govBlue">03</span><i class="fa-solid fa-file-medical text-xl text-govBlue"></i></div><h4 class="font-bold text-slate-800 text-sm">' + t.howStep3Title + '</h4><p class="text-xs leading-5 text-slate-500 mt-1">' + t.howStep3Text + '</p></article>' +
+            '</div>' +
+          '</section>' +
+          '<div class="pt-4">' +
+            '<button onclick="goToStep(2)" class="kiosk-btn w-full sm:w-auto px-10 py-5 bg-govBlue hover:bg-govNavy text-white font-extrabold text-lg rounded-2xl shadow-xl flex items-center justify-center gap-3 mx-auto border-b-4 border-slate-900"><span>' + t.start + '</span><i class="fa-solid fa-arrow-right"></i></button>' +
+            '<button onclick="showEmergencyModal()" class="mt-3 w-full sm:w-auto px-6 py-3 border-2 border-red-600 text-red-700 hover:bg-red-50 font-bold text-sm rounded-xl flex items-center justify-center gap-2 mx-auto"><i class="fa-solid fa-triangle-exclamation"></i> Emergency Assistance</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 2:
+      if (stepTitle) stepTitle.innerText = t.chooseLang;
+      html =
+        '<div class="space-y-6 my-auto max-w-3xl mx-auto w-full">' +
+          '<div class="text-center space-y-2">' +
+            '<div class="w-14 h-14 mx-auto bg-govLightBlue text-govBlue rounded-full flex items-center justify-center border border-blue-200"><i class="fa-solid fa-language text-2xl"></i></div>' +
+            '<h2 class="text-xl font-bold text-slate-800">' + t.chooseLang + '</h2>' +
+            '<p class="text-xs text-slate-500">This choice will be used for your entire session / यह चयन पूरे सत्र के लिए उपयोग किया जाएगा।</p>' +
+          '</div>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">' +
+            '<button onclick="setLanguage(\'en\'); goToStep(3);" class="kiosk-btn p-6 rounded-2xl border-2 ' + (currentLang === 'en' ? 'border-govAccent bg-blue-50' : 'border-slate-200 bg-white') + ' hover:border-govAccent text-center space-y-2 shadow-sm">' +
+              '<div class="text-3xl font-black text-govNavy">English</div><div class="text-xs text-slate-500 font-medium">Default Language</div>' +
+            '</button>' +
+            '<button onclick="setLanguage(\'hi\'); goToStep(3);" class="kiosk-btn p-6 rounded-2xl border-2 ' + (currentLang === 'hi' ? 'border-govAccent bg-blue-50' : 'border-slate-200 bg-white') + ' hover:border-govAccent text-center space-y-2 shadow-sm">' +
+              '<div class="text-3xl font-black text-govNavy">हिंदी</div><div class="text-xs text-slate-500 font-medium">राष्ट्रीय भाषा</div>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 3:
+      if (stepTitle) stepTitle.innerText = t.identTitle;
+      html =
+        '<div class="space-y-5 max-w-3xl mx-auto w-full my-auto">' +
+          '<div class="flex items-center justify-between border-b pb-3">' +
+            '<h2 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-id-card text-govBlue"></i> ' + t.identTitle + '</h2>' +
+            '<span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-300"><i class="fa-solid fa-shield-halved"></i> ABDM Test Env</span>' +
+          '</div>' +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
+            '<div class="bg-blue-50 p-4 rounded-xl border-2 border-blue-200 space-y-3">' +
+              '<div class="font-bold text-slate-800"><i class="fa-solid fa-qrcode text-govBlue"></i> Existing patient with ABHA</div>' +
+              '<input type="text" value="' + patientData.abha + '" id="input-abha" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 font-mono font-bold text-xs" />' +
+              '<button onclick="patientData.abhaStatus=\'Verified\'; showToast(\'ABHA ID verified!\', \'success\');" class="w-full p-2.5 bg-govBlue text-white font-bold rounded-lg text-xs">Verify ABHA</button>' +
+            '</div>' +
+            '<div class="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-300 space-y-3">' +
+              '<div class="font-bold text-emerald-950"><i class="fa-solid fa-user-plus text-emerald-700"></i> New patient — no ABHA ID</div>' +
+              '<p class="text-xs text-emerald-900">A temporary OPD token will be issued immediately.</p>' +
+              '<input type="tel" id="new-patient-mobile" value="' + (patientData.phone || '') + '" placeholder="Mobile number" class="w-full px-3 py-2.5 rounded-lg border border-emerald-200 bg-white text-sm" />' +
+              '<button onclick="startNewPatientWithoutAbha()" class="w-full p-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-extrabold text-xs">Issue Temporary Token</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bg-emerald-50 border-l-4 border-emerald-600 p-4 rounded-r-xl space-y-3">' +
+            '<h3 class="font-bold text-emerald-900 text-sm"><i class="fa-solid fa-shield-halved"></i> Data Privacy & ABDM Authorization</h3>' +
+            '<p class="text-xs text-emerald-800">Your medical history will be shared only with your attending physician.</p>' +
+            '<div class="flex gap-3">' +
+              '<button onclick="goToStep(6)" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-sm shadow-md">' + t.agree + '</button>' +
+              '<button onclick="showConsentBlockedMessage()" class="px-5 py-3 bg-white text-slate-700 font-bold rounded-xl text-xs border border-slate-300">' + t.disagree + '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 4:
+      if (stepTitle) stepTitle.innerText = t.consentTitle;
+      html =
+        '<div class="space-y-5 max-w-2xl mx-auto w-full my-auto">' +
+          '<div class="bg-emerald-50 border-l-4 border-emerald-600 p-4 rounded-r-xl">' +
+            '<h3 class="font-bold text-emerald-900 text-sm"><i class="fa-solid fa-shield-halved"></i> Data Privacy</h3>' +
+            '<p class="text-xs text-emerald-800 mt-1">Your medical history will be processed securely.</p>' +
+          '</div>' +
+          '<div class="flex gap-3">' +
+            '<button onclick="goToStep(6)" class="flex-1 py-4 bg-emerald-600 text-white font-extrabold rounded-xl text-sm">' + t.agree + '</button>' +
+            '<button onclick="showConsentBlockedMessage()" class="py-4 px-6 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">' + t.disagree + '</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 5:
+      if (stepTitle) stepTitle.innerText = t.tokenTitle;
+      html =
+        '<div class="text-center my-auto space-y-5 max-w-md mx-auto py-4">' +
+          '<div class="bg-govLightBlue border-2 border-govAccent p-6 rounded-2xl shadow-sm space-y-2">' +
+            '<div class="text-xs font-bold text-govBlue uppercase tracking-wider">' + t.tokenTitle + '</div>' +
+            '<div class="text-5xl font-black text-govNavy tracking-tight">' + patientData.token + '</div>' +
+            '<div class="text-xs font-bold text-emerald-700 bg-emerald-100 inline-block px-3 py-1 rounded-full border border-emerald-300">🟢 History Intake Ready</div>' +
+          '</div>' +
+          '<button onclick="finishSession()" class="w-full py-3 bg-govBlue hover:bg-govNavy text-white font-extrabold rounded-xl text-sm shadow-md">FINISH SESSION <i class="fa-solid fa-check ml-1"></i></button>' +
+        '</div>';
+      break;
+
+    case 6:
+      if (stepTitle) stepTitle.innerText = t.profileTitle;
+      html =
+        '<div class="space-y-4 max-w-lg mx-auto w-full my-auto">' +
+          '<h2 class="text-base font-bold text-slate-800 border-b pb-2">' + t.profileTitle + '</h2>' +
+          '<div class="grid grid-cols-2 gap-3 text-xs">' +
+            '<div><label class="block font-bold text-slate-600 mb-1">Full Name</label><input type="text" value="' + patientData.name + '" onchange="patientData.name=this.value" class="w-full p-2.5 rounded border font-semibold bg-white" /></div>' +
+            '<div><label class="block font-bold text-slate-600 mb-1">Age / Gender</label><input type="text" value="' + patientData.age + ' / ' + patientData.gender + '" class="w-full p-2.5 rounded border font-semibold bg-slate-50" readonly /></div>' +
+            '<div class="col-span-2"><label class="block font-bold text-slate-600 mb-1">Phone</label><input type="text" value="' + patientData.phone + '" onchange="patientData.phone=this.value" class="w-full p-2.5 rounded border font-semibold bg-white" /></div>' +
+            '<div class="col-span-2"><label class="block font-bold text-slate-600 mb-1">ABHA ID</label><input type="text" value="' + patientData.abha + '" class="w-full p-2.5 rounded border font-semibold bg-slate-50 font-mono" readonly /></div>' +
+          '</div>' +
+          '<button onclick="goToStep(7)" class="w-full py-3.5 bg-govBlue text-white font-bold rounded-xl text-xs shadow">CONFIRM & CONTINUE</button>' +
+        '</div>';
+      break;
+
+    case 7:
+      if (stepTitle) stepTitle.innerText = t.complaintTitle;
+      html =
+        '<div class="space-y-6 max-w-3xl mx-auto w-full my-auto">' +
+          '<div class="text-center space-y-2"><h2 class="text-xl font-extrabold text-slate-800">' + t.complaintTitle + '</h2><p class="text-xs text-slate-500">Tap a primary symptom to receive tailored AI intake suggestions</p></div>' +
+          '<div class="text-center my-4"><button onclick="promptVoiceMode()" class="mic-pulse w-24 h-24 bg-govAccent text-white rounded-full flex flex-col items-center justify-center mx-auto shadow-lg hover:bg-govBlue transition-all"><i class="fa-solid fa-microphone text-3xl mb-1"></i><span class="text-[10px] font-bold uppercase tracking-wider">SPEAK NOW</span></button></div>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4.5">' +
+            '<button onclick="selectChiefSymptom(\'Fever & Chills\', false)" class="p-5 rounded-2xl border-2 border-slate-200 hover:border-govAccent bg-white text-left shadow-sm hover:shadow-md transition-all flex items-start justify-between">' +
+              '<div class="space-y-1">' +
+                '<div class="font-extrabold text-sm text-slate-800 flex items-center gap-2"><i class="fa-solid fa-temperature-high text-amber-500 text-lg"></i> Fever / बुखार</div>' +
+                '<p class="text-[11px] text-slate-500">Body pain, shivering, high temperature</p>' +
+              '</div>' +
+              '<span class="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">General</span>' +
+            '</button>' +
+            '<button onclick="selectChiefSymptom(\'Severe Headache\', false)" class="p-5 rounded-2xl border-2 border-slate-200 hover:border-govAccent bg-white text-left shadow-sm hover:shadow-md transition-all flex items-start justify-between">' +
+              '<div class="space-y-1">' +
+                '<div class="font-extrabold text-sm text-slate-800 flex items-center gap-2"><i class="fa-solid fa-head-side-virus text-indigo-500 text-lg"></i> Headache / सिरदर्द</div>' +
+                '<p class="text-[11px] text-slate-500">Migraine, tension, sinus throbbing</p>' +
+              '</div>' +
+              '<span class="text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">Neurological</span>' +
+            '</button>' +
+            '<button onclick="selectChiefSymptom(\'Stomach Pain\', false)" class="p-5 rounded-2xl border-2 border-slate-200 hover:border-govAccent bg-white text-left shadow-sm hover:shadow-md transition-all flex items-start justify-between">' +
+              '<div class="space-y-1">' +
+                '<div class="font-extrabold text-sm text-slate-800 flex items-center gap-2"><i class="fa-solid fa-stomach text-teal-600 text-lg"></i> Stomach Pain / पेट दर्द</div>' +
+                '<p class="text-[11px] text-slate-500">Acidity, cramps, gastric issues</p>' +
+              '</div>' +
+              '<span class="text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-full">Gastro</span>' +
+            '</button>' +
+            '<button onclick="selectChiefSymptom(\'Chest Pain — Emergency\', true)" class="p-5 rounded-2xl border-2 border-red-300 hover:border-red-600 bg-red-50/70 text-left shadow-sm hover:shadow-md transition-all flex items-start justify-between">' +
+              '<div class="space-y-1">' +
+                '<div class="font-extrabold text-sm text-red-900 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-600 text-lg"></i> Chest Pain / छाती में दर्द</div>' +
+                '<p class="text-[11px] text-red-700 font-medium">Pressure, radiating pain, breathlessness</p>' +
+              '</div>' +
+              '<span class="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded animate-pulse">EMERGENCY</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 8:
+      if (stepTitle) stepTitle.innerText = t.interviewTitle;
+      const currentSym = symptomSuggestions[patientData.chiefComplaint] || symptomSuggestions['Fever & Chills'];
+      const questionText = currentLang === 'hi' ? currentSym.aiQuestionHi : currentSym.aiQuestionEn;
+      
+      html =
+        '<div class="space-y-5 max-w-2xl mx-auto w-full my-auto">' +
+          '<div class="bg-govLightBlue border-2 border-govBlue p-5 rounded-2xl shadow-sm space-y-3 relative">' +
+            '<div class="flex items-center justify-between text-xs font-bold text-govBlue">' +
+              '<span class="flex items-center gap-2"><i class="fa-solid fa-robot"></i> AI Clinical Case Assistant</span>' +
+              '<span class="bg-blue-100 text-govNavy px-2.5 py-0.5 rounded-full border border-blue-200 font-extrabold text-[10px]">' + currentSym.badge + '</span>' +
+            '</div>' +
+            '<p class="text-base sm:text-lg font-bold text-govNavy leading-relaxed">' + questionText + '</p>' +
+          '</div>' +
+          '<div class="bg-white border-2 border-slate-200 rounded-xl p-4 space-y-3">' +
+            '<div class="flex items-center justify-between gap-3">' +
+              '<h3 class="font-bold text-xs uppercase tracking-wider text-slate-600">Select standard response match:</h3>' +
+              '<button onclick="startVoiceRecognition()" class="px-3 py-1.5 bg-govAccent hover:bg-govBlue text-white rounded-lg font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-microphone"></i> Speak Answer</button>' +
+            '</div>' +
+            (patientData.voiceTranscript ? '<div class="bg-slate-50 rounded-lg border border-slate-200 p-3"><div class="text-[10px] uppercase font-bold text-slate-500">Captured response</div><p class="text-xs text-slate-800 font-semibold mt-1">' + patientData.voiceTranscript + '</p></div>' : '') +
+          '</div>' +
+          '<div class="space-y-2.5">' +
+            currentSym.options.map(function(opt) {
+              const label = currentLang === 'hi' ? opt.textHi : opt.textEn;
+              return '<button onclick="selectSocratesOption(\'' + label.replace(/'/g, "\\'") + '\', \'' + opt.duration + '\')" class="w-full p-4 bg-white border-2 border-slate-200 hover:border-govAccent hover:bg-amber-50/40 rounded-xl text-left font-semibold text-xs text-slate-800 flex justify-between items-center transition-all group shadow-sm">' +
+                '<span>' + label + '</span>' +
+                '<i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-govAccent"></i>' +
+              '</button>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 10:
+      if (stepTitle) stepTitle.innerText = 'PRIORITY RED FLAG — EMERGENCY';
+      html =
+        '<div class="space-y-5 max-w-2xl mx-auto w-full my-auto text-center">' +
+          '<div class="bg-alertLight border-2 border-alertRed p-6 rounded-2xl space-y-3 shadow-md">' +
+            '<div class="w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center mx-auto text-3xl animate-bounce shadow-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>' +
+            '<h2 class="text-xl font-black text-red-900">EMERGENCY: IMMEDIATE TRIAGE REQUIRED</h2>' +
+            '<p class="text-xs text-red-800 font-semibold max-w-md mx-auto">Possible emergency symptoms detected. Seek immediate human clinical evaluation.</p>' +
+          '</div>' +
+          '<div class="flex gap-3">' +
+            '<button onclick="switchMode(\'doctor\')" class="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-extrabold rounded-xl text-xs shadow-lg">PROCEED TO EMERGENCY DASHBOARD</button>' +
+            '<button onclick="goToStep(7)" class="py-4 px-4 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Re-evaluate Symptom</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 12:
+      if (stepTitle) stepTitle.innerText = t.docTitle;
+      html =
+        '<div class="space-y-5 max-w-xl mx-auto w-full my-auto text-center">' +
+          '<div class="border-2 border-dashed border-govBlue bg-blue-50/50 p-8 rounded-2xl space-y-3">' +
+            '<i class="fa-solid fa-cloud-arrow-up text-4xl text-govBlue"></i>' +
+            '<h3 class="font-bold text-slate-800 text-sm">Scan or Upload Old Medical Records</h3>' +
+            '<p class="text-xs text-slate-500">Upload prescriptions, CBC reports, or discharge papers</p>' +
+            '<div class="flex justify-center gap-3 pt-2">' +
+              '<button onclick="goToStep(13)" class="px-5 py-2.5 bg-govBlue text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-camera mr-1"></i> Take Photo</button>' +
+              '<button onclick="goToStep(13)" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-file-pdf mr-1"></i> Select PDF</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="text-xs text-slate-400">Supported: JPG, PNG, PDF (Max 10MB)</div>' +
+        '</div>';
+      break;
+
+    case 13:
+      if (stepTitle) stepTitle.innerText = t.ocrTitle;
+      html =
+        '<div class="space-y-4 max-w-3xl mx-auto w-full my-auto">' +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
+            '<div class="bg-slate-100 p-3 rounded-xl border border-slate-300 text-center space-y-2">' +
+              '<div class="text-xs font-bold text-slate-600">Uploaded Document</div>' +
+              '<div class="bg-white p-4 rounded border text-left font-mono text-[10px] text-slate-600 h-44 overflow-y-auto shadow-inner">' +
+                '<div class="font-bold border-b pb-1 text-slate-800">CITY PATHOLOGY LAB - CBC</div>' +
+                '<div>Patient: ' + patientData.name + '</div>' +
+                '<div class="mt-2 text-red-700 font-bold">Hb: 10.2 g/dL [LOW]</div>' +
+                '<div>WBC: 12,800 /µL [ELEVATED]</div>' +
+                '<div>Platelets: 1.8 Lakhs [NORMAL]</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="bg-blue-50/70 p-4 rounded-xl border border-blue-200 space-y-3">' +
+              '<div class="font-bold text-xs text-govNavy">AI Extracted Lab Metrics</div>' +
+              '<div class="space-y-2 text-xs">' +
+                '<div class="flex justify-between items-center bg-white p-2 rounded border"><span>Hb</span><span class="font-bold text-red-600">10.2 g/dL (Low)</span></div>' +
+                '<div class="flex justify-between items-center bg-white p-2 rounded border"><span>WBC</span><span class="font-bold text-amber-700">12,800 /µL (High)</span></div>' +
+              '</div>' +
+              '<button onclick="goToStep(14)" class="w-full py-3 bg-govBlue text-white font-bold rounded-lg text-xs">VERIFY & ADD TO TIMELINE</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 14:
+      if (stepTitle) stepTitle.innerText = t.timelineTitle;
+      html =
+        '<div class="space-y-4 max-w-xl mx-auto w-full my-auto">' +
+          '<h2 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-timeline text-govBlue"></i> Patient Medical Timeline</h2>' +
+          '<div class="space-y-3 border-l-2 border-govBlue pl-4 ml-2 text-xs">' +
+            '<div class="relative"><div class="w-3 h-3 bg-govBlue rounded-full absolute -left-[23px] top-1"></div><div class="font-bold text-slate-800">15 Aug 2026 - CBC Lab Test</div><div class="text-slate-500">Hb: 10.2 g/dL</div></div>' +
+            '<div class="relative"><div class="w-3 h-3 bg-slate-400 rounded-full absolute -left-[23px] top-1"></div><div class="font-bold text-slate-800">10 Aug 2026 - OPD Consultation</div><div class="text-slate-500">Metformin 500mg</div></div>' +
+            '<div class="relative"><div class="w-3 h-3 bg-emerald-600 rounded-full absolute -left-[23px] top-1"></div><div class="font-bold text-emerald-800">Today - Current Intake</div><div class="text-slate-500">' + patientData.chiefComplaint + '</div></div>' +
+          '</div>' +
+          '<button onclick="goToStep(15)" class="w-full py-4 bg-govBlue text-white font-bold rounded-xl text-xs">PROCEED TO REVIEW <i class="fa-solid fa-arrow-right ml-1"></i></button>' +
+        '</div>';
+      break;
+
+    case 15:
+      if (stepTitle) stepTitle.innerText = t.reviewTitle;
+      html =
+        '<div class="space-y-4 max-w-xl mx-auto w-full my-auto">' +
+          '<div class="bg-slate-50 p-4 rounded-xl border space-y-3 text-xs">' +
+            '<div class="font-bold text-slate-800 border-b pb-2 flex justify-between"><span>Review Your Recorded Information</span><span class="text-govBlue">Token: ' + patientData.token + '</span></div>' +
+            '<div><strong>Name:</strong> ' + patientData.name + '</div>' +
+            '<div><strong>ABHA:</strong> ' + patientData.abha + '</div>' +
+            '<div><strong>Chief Complaint:</strong> ' + patientData.chiefComplaint + '</div>' +
+            '<div><strong>Specific Details:</strong> ' + (patientData.voiceTranscript || 'Recorded') + '</div>' +
+            '<div><strong>Uploaded Records:</strong> ' + patientData.documents.length + ' Verified</div>' +
+          '</div>' +
+          '<div class="flex gap-2">' +
+            '<button onclick="goToStep(16)" class="flex-1 py-4 bg-emerald-600 text-white font-extrabold rounded-xl text-xs shadow">CONFIRM & GENERATE SUMMARY</button>' +
+            '<button onclick="goToStep(7)" class="py-4 px-4 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Edit</button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    case 16:
+      if (stepTitle) stepTitle.innerText = t.summaryTitle;
+      html =
+        '<div class="space-y-4 max-w-2xl mx-auto w-full my-auto">' +
+          '<div class="bg-blue-50/60 p-5 rounded-2xl border border-blue-200 space-y-3">' +
+            '<div class="flex justify-between items-center border-b border-blue-200 pb-2">' +
+              '<span class="font-extrabold text-govNavy text-sm">Structured Clinical Intake Summary</span>' +
+              '<span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">✓ Verified</span>' +
+            '</div>' +
+            '<div class="grid grid-cols-2 gap-2 text-xs">' +
+              '<div><strong>Patient:</strong> ' + patientData.name + '</div>' +
+              '<div><strong>ABHA:</strong> ' + patientData.abha + '</div>' +
+              '<div class="col-span-2"><strong>Complaint:</strong> ' + patientData.chiefComplaint + '</div>' +
+              '<div class="col-span-2"><strong>Clinical Details:</strong> ' + (patientData.voiceTranscript || 'General') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button onclick="goToStep(17)" class="w-full py-4 bg-govBlue text-white font-extrabold rounded-xl text-sm shadow">SUBMIT MEDICAL HISTORY <i class="fa-solid fa-paper-plane ml-1"></i></button>' +
+        '</div>';
+      break;
+
+    case 17:
+      if (stepTitle) stepTitle.innerText = 'Consultation Token / परामर्श टोकन';
+      html =
+        '<div class="text-center my-auto space-y-5 max-w-lg mx-auto py-4">' +
+          '<div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner"><i class="fa-solid fa-circle-check"></i></div>' +
+          '<div class="space-y-2"><h2 class="text-2xl font-black text-slate-800">' + t.submitSuccess + '</h2><p class="text-xs text-slate-500">Please proceed to OPD Room 104 when your token is called.</p></div>' +
+          '<div class="bg-govLightBlue border-2 border-govAccent p-6 rounded-2xl shadow-sm space-y-2">' +
+            '<div class="text-xs font-bold text-govBlue uppercase tracking-wider">' + t.tokenTitle + '</div>' +
+            '<div class="text-6xl font-black text-govNavy tracking-tight">' + patientData.token + '</div>' +
+            '<div class="text-xs font-bold text-emerald-700 bg-emerald-100 inline-block px-3 py-1 rounded-full border border-emerald-300">🟢 History Intake Ready</div>' +
+          '</div>' +
+          '<div class="grid grid-cols-2 gap-2 text-left text-xs bg-slate-50 p-4 rounded-xl border">' +
+            '<div><span class="text-slate-400">Department:</span> <div class="font-bold">General OPD</div></div>' +
+            '<div><span class="text-slate-400">Doctor:</span> <div class="font-bold">Dr. A. Sharma</div></div>' +
+            '<div><span class="text-slate-400">Wait:</span> <div class="font-bold text-amber-700">3–5 minutes</div></div>' +
+            '<div><span class="text-slate-400">Room:</span> <div class="font-bold">Room 104</div></div>' +
+          '</div>' +
+          '<div class="pt-2">' +
+            '<button onclick="finishSession()" class="w-full py-4 bg-govBlue hover:bg-govNavy text-white font-extrabold rounded-xl text-sm shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-right-from-bracket"></i><span>FINISH SESSION / सत्र समाप्त करें</span></button>' +
+          '</div>' +
+        '</div>';
+      break;
+
+    default:
+      html = '<div class="text-center my-auto"><p class="text-slate-500">Step ' + currentStep + ' not implemented.</p></div>';
+  }
+
+  container.innerHTML = html +
+    '<div class="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">' +
+      '<button onclick="prevStep()" ' + (currentStep === 1 ? 'disabled' : '') + ' class="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold text-xs disabled:opacity-40"><i class="fa-solid fa-arrow-left mr-1"></i> Back</button>' +
+    '</div>';
+}
+
+/* ==================== DOCTOR VIEW ==================== */
+function renderDoctorView() {
+  const c = document.getElementById('doctor-patient-detail');
+  if (!c) return;
+  c.innerHTML =
+    '<div class="flex justify-between items-start border-b pb-4 border-slate-100">' +
+      '<div>' +
+        '<div class="flex items-center gap-2">' +
+          '<span class="text-lg font-black text-govNavy bg-blue-100 px-2.5 py-1 rounded">Token ' + patientData.token + '</span>' +
+          '<h2 class="text-xl font-bold text-slate-900">' + (patientData.name || '—') + '</h2>' +
+          '<span class="text-xs text-slate-500 font-semibold">' + (patientData.age || '—') + ' / ' + (patientData.gender || '—') + '</span>' +
+        '</div>' +
+        '<div class="text-xs text-slate-500 mt-1"><strong>ABHA:</strong> ' + (patientData.abha || 'Not provided') + '</div>' +
+      '</div>' +
+      '<button onclick="showToast(\'Summary Accepted\', \'success\')" class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow"><i class="fa-solid fa-check"></i> Accept</button>' +
+    '</div>' +
+    (patientData.isRedFlag ? '<div class="bg-red-50 border-l-4 border-red-600 p-3 rounded-r-lg text-xs text-red-900 font-bold"><i class="fa-solid fa-triangle-exclamation text-red-600"></i> PRIORITY: Emergency assistance requested</div>' : '') +
+    '<div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2 text-xs">' +
+      '<div class="font-bold text-slate-700 border-b pb-1 flex justify-between"><span>Chief Complaint & HPI</span><span onclick="openSourceModal(\'interview\')" class="cursor-pointer text-[10px] bg-blue-100 text-govBlue px-2 py-0.5 rounded font-bold">🎤 Source</span></div>' +
+      '<p class="text-slate-800 font-semibold">' + (patientData.chiefComplaint || '—') + '</p>' +
+      '<p class="text-slate-600">' + (patientData.voiceTranscript || 'No specific details recorded.') + '</p>' +
+    '</div>' +
+    '<div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2 text-xs">' +
+      '<div class="font-bold text-slate-700 border-b pb-1">Uploaded Records (AI OCR)</div>' +
+      (patientData.documents.length
+        ? patientData.documents.map(function (d) { return '<div class="flex justify-between bg-white p-2 rounded border text-[11px]"><div><span class="font-bold text-slate-800">' + d.name + '</span> <span class="text-slate-400">(' + d.date + ')</span></div><span class="text-slate-600 font-mono text-[10px]">' + d.snippet + '</span></div>'; }).join('')
+        : '<div class="text-slate-400 italic">No documents uploaded.</div>') +
+    '</div>' +
+    '<div class="pt-4 border-t border-slate-100 flex justify-between items-center">' +
+      '<span class="text-xs text-slate-400">Doctor Authority Active • AI decision support only</span>' +
+      '<button onclick="showToast(\'Consultation Completed!\', \'success\'); switchMode(\'kiosk\'); goToStep(1);" class="px-6 py-3 bg-govNavy text-white font-bold rounded-xl text-xs shadow-md">COMPLETE CONSULTATION</button>' +
+    '</div>';
+}
+function loadDoctorPatient() { renderDoctorView(); }
+
+function openSourceModal(type) {
+  const modal = document.getElementById('source-modal');
+  const title = document.getElementById('modal-title');
+  const content = document.getElementById('modal-content');
+  if (!modal) return;
+  if (type === 'interview') {
+    if (title) title.innerText = 'Traceability: Patient Voice Interview';
+    if (content) content.innerHTML = '<div class="text-slate-500">// SPEECH-TO-TEXT LOG</div><div class="text-slate-800 font-bold">Patient Audio: "3 din se severe bukhar hai"</div><div>Confidence Score: 0.96</div>';
+  } else {
+    if (title) title.innerText = 'Traceability: OCR Document Extraction';
+    if (content) content.innerHTML = '<div class="text-slate-500">// OCR JSON</div><div class="text-red-700 font-bold">Extracted: "Hemoglobin 10.2 g/dL"</div><div>Verification: AI Extracted — Verified</div>';
+  }
+  modal.classList.remove('hidden');
+}
+function closeSourceModal() {
+  const m = document.getElementById('source-modal');
+  if (m) m.classList.add('hidden');
+}
+</script>
+</body>
+</html>
